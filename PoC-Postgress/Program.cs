@@ -4,6 +4,7 @@ using PoC_Postgress;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddSingleton<PostegressSql>(new PostegressSql("Host=localhost;Username=postgres;Password=Postgres2022!;Database=basegeografica"));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -19,44 +20,37 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/regioes", () =>
+app.MapGet("/regioes", (PostegressSql postegressSql) =>
 {
-    string connString = "Host=localhost;Username=postgres;Password=Postgres2022!;Database=basegeografica";
+    var conn = postegressSql.Instance;
 
-    using (var conn = new NpgsqlConnection(connString))
+    string query = "SELECT \"IdRegiao\", \"CodRegiao\", \"NomeRegiao\" FROM \"Regioes\"";
+
+    IEnumerable<Regiao> regioes = conn.Query<Regiao>(query);
+
+    foreach (var regiao in regioes)
     {
-        conn.Open();
-
-        string query = "SELECT \"IdRegiao\", \"CodRegiao\", \"NomeRegiao\" FROM \"Regioes\"";
-
-        IEnumerable<Regiao> regioes = conn.Query<Regiao>(query);
-
-        foreach (var regiao in regioes)
-        {
-            Console.WriteLine($"IdRegiao: {regiao.IdRegiao}, CodRegiao: {regiao.CodRegiao}, NomeRegiao: {regiao.NomeRegiao}");
-        }
+        Console.WriteLine($"IdRegiao: {regiao.IdRegiao}, CodRegiao: {regiao.CodRegiao}, NomeRegiao: {regiao.NomeRegiao}");
     }
+
+
     return Results.Ok();
 
 });
 
-app.MapGet("/estados", () =>
+app.MapGet("/estados", (PostegressSql postegressSql) =>
 {
-    string connString = "Host=localhost;Username=postgres;Password=Postgres2022!;Database=basegeografica";
+    var conn = postegressSql.Instance;
 
-    using (var conn = new NpgsqlConnection(connString))
+    string query = "SELECT \"SiglaEstado\", \"NomeEstado\", \"NomeCapital\", \"IdRegiao\" FROM \"Estados\"";
+
+    IEnumerable<Estado> regioes = conn.Query<Estado>(query);
+
+    foreach (var regiao in regioes)
     {
-        conn.Open();
-
-        string query = "SELECT \"SiglaEstado\", \"NomeEstado\", \"NomeCapital\", \"IdRegiao\" FROM \"Estados\"";
-
-        IEnumerable<Estado> regioes = conn.Query<Estado>(query);
-
-        foreach (var regiao in regioes)
-        {
-            Console.WriteLine($"IdRegiao: {regiao.IdRegiao}, NomeCapital: {regiao.NomeCapital}, NomeEstado: {regiao.NomeEstado}, SiglaEstado: {regiao.SiglaEstado}");
-        }
+        Console.WriteLine($"IdRegiao: {regiao.IdRegiao}, NomeCapital: {regiao.NomeCapital}, NomeEstado: {regiao.NomeEstado}, SiglaEstado: {regiao.SiglaEstado}");
     }
+
     return Results.Ok();
 
 });
@@ -65,3 +59,14 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+
+public class PostegressSql
+{
+    public NpgsqlConnection Instance { get; }
+    public PostegressSql(string connString)
+    {
+        Instance = new NpgsqlConnection(connString);
+        Instance.Open();
+    }
+}
